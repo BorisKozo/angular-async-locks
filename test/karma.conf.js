@@ -4,30 +4,47 @@ module.exports = function (config) {
         basePath: '../',
 
         files: [
-      'app/bower_components/angular/angular.js',
-      'app/bower_components/angular-mocks/angular-mocks.js',
-      'app/js/app.js',
-      'app/lib/*.js',
-      'test/unit/**/*.js'
-    ],
+            {
+                pattern: 'node_modules/chai/chai.js',
+                include: true
+            },
+            'app/bower_components/angular/angular.js',
+            'app/bower_components/angular-mocks/angular-mocks.js',
+            'app/js/app.js',
+            'app/lib/*.js',
+            'test/unit/**/*.js'
+        ],
 
         autoWatch: true,
 
-        frameworks: ['jasmine'],
+        frameworks: ['mocha'],
 
         browsers: ['Chrome'],
 
+        reporters: ['dots'],
+        //reporters: ['dots', 'junit', 'coverage'],
+
         plugins: [
             'karma-chrome-launcher',
-            'karma-firefox-launcher',
-            'karma-jasmine',
-            'karma-junit-reporter'
+            'karma-mocha',
+            'karma-junit-reporter',
+            'karma-coverage'
             ],
+
+        preprocessors: {
+            'app/lib/*.js': 'coverage'
+        },
 
         junitReporter: {
             outputFile: 'test_out/unit.xml',
             suite: 'unit'
-        }
+        },
+
+        coverageReporter: {
+            // cf. http://gotwarlost.github.com/istanbul/public/apidocs/
+            type: 'lcov',
+            dir: 'coverage/'
+        },
 
     });
 };

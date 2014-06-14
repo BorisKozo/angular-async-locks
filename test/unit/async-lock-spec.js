@@ -1,5 +1,7 @@
 describe('Async Locks', function () {
     'use strict';
+    var expect = chai.expect;
+
     describe('Async Locks Service', function () {
 
         //        beforeEach(module('myApp.controllers'));
@@ -33,51 +35,73 @@ describe('Async Locks', function () {
             });
         });
 
-        it('should calculate the first 5 elements of the fibonacci series', function (done) {
-            var data = [0, 1];
+        function delay(balance, callback) {
+            setTimeout(function () {
+                callback(balance);
+            }, 10);
+        }
 
-            var retrieveData = function (callback) {
-                var x = data[data.length - 1];
-                var y = data[data.length - 2];
-                setTimeout(function () {
-                    callback(x, y);
-                }, 0);
+
+
+        it('should calculate incorrect balance without the lock', function (done) {
+            var count = 0;
+            var balance = { //Simulate a value stored on a remote server
+                value: 100
             };
 
-            var calculateSum = function (x, y, callback) {
-                var sum = x + y;
-                setTimeout(function () {
-                    callback(sum);
-                }, 0);
+            function updateBalance() {
+                delay(balance.value, function (value) { //simulate reading the balance from remote server
+                    value -= 10;
+                    delay(value, function (value) { // simulate writing the balance back to remove server
+                        balance.value = value;
+                        if (count === 0) {
+                            count++;
+                            return;
+                        }
+                        expect(balance.value).to.be.equal(90);
+                        done();
+                    });
+                });
+            }
+
+            updateBalance();
+            updateBalance();
+        });
+
+        it('should calculate correct balance with the lock', function (done) {
+            var count = 0;
+            var balance = {
+                value: 100
             };
 
-            var addSum = function (sum, callback) {
-                data.push(sum);
-                setTimeout(callback, 0);
-            };
+            var lock = new AsyncLock();
 
-            var i, lock = new AsyncLock();
-
-            var fibonacci = function (token) {
-                retrieveData(function (x, y) {
-                    calculateSum(x, y, function (sum) {
-                        addSum(sum, function () {
-                            asyncMutex.leave(token);
-                            if (data.length === 5) {
-                                data[2].should.equal(1);
-                                data[3].should.equal(2);
-                                data[4].should.equal(3);
-                                done();
+            function updateBalance() {
+                lock.enter(function (token) {
+                    delay(balance.value, function (value) {
+                        value -= 10;
+                        delay(value, function (value) {
+                            balance.value = value;
+                            if (count === 0) {
+                                count++;
+                                lock.leave(token);
+                                return;
                             }
+                            expect(balance.value).to.be.equal(80);
+                            done();
                         });
                     });
                 });
-            };
-
-            for (i = 0; i < 3; i++) {
-                lock.enter(fibonacci);
             }
 
+
+            updateBalance();
+            updateBalance();
+
         });
+
+
+
+
     });
 });
