@@ -1,6 +1,7 @@
 {
-  "globalstrict": true,
-  "globals": {
-    "angular": false
-  }
+    "globalstrict": true,
+    "validthis": true,
+    "globals": {
+        "angular": false
+    }
 }
