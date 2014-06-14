@@ -1,0 +1,11 @@
+{
+    "name": "angular-async-locks",
+    "description": "A set of asynchronous lock pattarens for Angular.js",
+    "version": "0.0.1",
+    "license": "MIT",
+    "dependencies": {
+        "angular": "1.2.x",
+        "angular-loader": "1.2.x",
+        "angular-mocks": "~1.2.x"
+    }
+}
