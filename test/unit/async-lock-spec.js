@@ -3,6 +3,91 @@ describe('Async Locks', function () {
   var expect = chai.expect;
 
   describe('Async Locks Service', function () {
+    var asyncLockService;
+
+    beforeEach(function () {
+      module('boriskozo.async-locks');
+      inject(function ($injector) {
+        asyncLockService = $injector.get('AsyncLockService');
+      });
+    });
+
+    describe('Check is locked', function () {
+      it('should check if a non existing lock is locked', function () {
+        expect(asyncLockService.isLocked('foo')).to.be.false;
+      });
+
+      it('should check if an existing unlocked lock is locked', function (done) {
+        asyncLockService.lock('foo', function (leave) {
+          leave();
+          expect(asyncLockService.isLocked('foo')).to.be.false;
+          done();
+        });
+
+      });
+
+      it('should check if an existing locked lock is locked', function (done) {
+        asyncLockService.lock('foo', function (leave) {
+          expect(asyncLockService.isLocked('foo')).to.be.true;
+          done();
+        });
+      });
+
+      it('should not allow non string lock name', function () {
+        expect(function () {
+          asyncLockService.isLocked({});
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.isLocked('');
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.isLocked();
+        }).to.throw('The name must be a non empty string');
+
+      });
+    });
+
+    describe('Lock', function () {
+
+      it('should execute the first entrant', function (done) {
+        asyncLockService.lock('A', function(){
+          done();
+        });
+      });
+
+      it('should allow only one execution within a lock', function (done) {
+       
+        asyncLockService.lock('A',function () {
+          asyncLockService.lock('A', function () {
+            done('Should not be here');
+          });
+          done();
+        });
+      });
+
+      it('should not allow non string lock name', function () {
+        var foo = function () { };
+        expect(function () {
+          asyncLockService.lock({},foo);
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lock('',foo);
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lock(null,foo);
+        }).to.throw('The name must be a non empty string');
+      });
+
+      it('should not allow entering with a non function', function () {
+        expect(function () {
+          asyncLockService.lock('moo');
+        }).to.throw('Callback must be a function');
+      });
+    });
 
   });
 
@@ -277,6 +362,31 @@ describe('Async Locks', function () {
         });
 
         setTimeout(done, 300);
+      });
+    });
+
+    describe('Check is locked', function () {
+      it('should be unlocked if no one entered the lock', function () {
+        var lock = new AsyncLock();
+        expect(lock.isLocked()).to.be.false;
+      });
+
+      it('should be unlocked if everyone left the lock', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          lock.leave(token);
+          expect(lock.isLocked()).to.be.false;
+          done();
+        });
+        
+      });
+
+      it('should be locked someone locked it', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function () {
+          expect(lock.isLocked()).to.be.true;
+          done();
+        });
       });
     });
   });
