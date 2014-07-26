@@ -11,5 +11,5 @@ before_script:
   - npm install -g karma-cli
 
 script:
-  - karma start test/karma.conf.js --no-auto-watch --single-run --reporters=dots --browsers=Chrome
+  - karma start test/karma.conf.js --no-auto-watch --single-run --reporters=dots --browsers=Firefox
   
