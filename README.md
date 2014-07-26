@@ -1,5 +1,6 @@
-# angular-async-locks
-
+angular-async-locks
+==========================================
+[![Build Status](https://travis-ci.org/BorisKozo/angular-async-locks.png?branch=master)](https://travis-ci.org/BorisKozo/angular-async-locks)
 A set of asynchronous lock patterns for Angular.js
 
 ## Documentation
