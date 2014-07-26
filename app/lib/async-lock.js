@@ -8,6 +8,12 @@ angular.module('boriskozo.async-locks', [])
         return new Date() - this.start;
       }
 
+      function leave() {
+        if (this.lock) {
+          this.lock.leave(this);
+        }
+      }
+
       /**
        * An asynchronous lock.
        * @constructor
@@ -27,7 +33,9 @@ angular.module('boriskozo.async-locks', [])
           isCanceled: false,
           callback: callback,
           elapsed: elapsed,
-          start: new Date()
+          start: new Date(),
+          lock: this,
+          leave: leave
         };
       };
 
@@ -45,7 +53,7 @@ angular.module('boriskozo.async-locks', [])
       /**
        * Locks the lock and generates a token which can be used to control the lock.
        * @param {function} callback - The callback which is going to be called when the lock is acquired
-       * @param {number} [timeout] - The amount of time to wait in milliseconds before canceling the lock.
+       * @param {number} [timeout] - The amount of time to wait in milliseconds before canceling the callback call.
        * The callback is of the form foo(token) (i.e. it will receive the acquired token as a parameter when called)
        * @returns The token which controls the lock for this callback.
        */

@@ -27,7 +27,7 @@ describe('Async Locks', function () {
       });
 
       it('should check if an existing locked lock is locked', function (done) {
-        asyncLockService.lock('foo', function (leave) {
+        asyncLockService.lock('foo', function () {
           expect(asyncLockService.isLocked('foo')).to.be.true;
           done();
         });
@@ -52,14 +52,14 @@ describe('Async Locks', function () {
     describe('Lock', function () {
 
       it('should execute the first entrant', function (done) {
-        asyncLockService.lock('A', function(){
+        asyncLockService.lock('A', function () {
           done();
         });
       });
 
       it('should allow only one execution within a lock', function (done) {
-       
-        asyncLockService.lock('A',function () {
+
+        asyncLockService.lock('A', function () {
           asyncLockService.lock('A', function () {
             done('Should not be here');
           });
@@ -70,15 +70,15 @@ describe('Async Locks', function () {
       it('should not allow non string lock name', function () {
         var foo = function () { };
         expect(function () {
-          asyncLockService.lock({},foo);
+          asyncLockService.lock({}, foo);
         }).to.throw('The name must be a non empty string');
 
         expect(function () {
-          asyncLockService.lock('',foo);
+          asyncLockService.lock('', foo);
         }).to.throw('The name must be a non empty string');
 
         expect(function () {
-          asyncLockService.lock(null,foo);
+          asyncLockService.lock(null, foo);
         }).to.throw('The name must be a non empty string');
       });
 
@@ -86,6 +86,32 @@ describe('Async Locks', function () {
         expect(function () {
           asyncLockService.lock('moo');
         }).to.throw('Callback must be a function');
+      });
+
+      it('should allow lock after unlocked by first entrant', function (done) {
+        asyncLockService.lock('A', function (leave) {
+          leave();
+        });
+
+        asyncLockService.lock('A', function () {
+          done();
+        });
+      });
+
+      it('should not call the callback if the timeout has expired and do call it if not expired', function (done) {
+        asyncLockService.lock('A', function (leave) {
+          setTimeout(function () {
+            leave();
+          }, 100);
+        });
+        asyncLockService.lock('A', function () {
+          done('error');
+        }, 10);
+
+        asyncLockService.lock('A', function () {
+          done();
+        }, 1000);
+
       });
     });
 
@@ -229,6 +255,23 @@ describe('Async Locks', function () {
         }).to.throw('Token cannot be null or undefined');
       });
 
+      it('should not call the callback if the timeout has expired and do call it if not expired', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (innerToken) {
+          setTimeout(function () {
+            lock.leave(innerToken);
+          }, 100);
+        });
+        lock.enter(function () {
+          done('error');
+        }, 10);
+
+        lock.enter(function () {
+          done();
+        }, 1000);
+
+      });
+
     });
 
     describe('Leave a lock', function () {
@@ -274,6 +317,16 @@ describe('Async Locks', function () {
         });
       });
 
+      it('should allow enter after token.leave was called', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          token.leave();
+        });
+        lock.enter(function () {
+          done();
+        });
+      });
+
       it('should execute the next entrant when leave was called', function (done) {
         var lock = new AsyncLock();
         lock.enter(function (token) {
@@ -300,6 +353,17 @@ describe('Async Locks', function () {
         token.isCanceled = true;
 
         setTimeout(done, 300);
+      });
+
+      it('should have positive elapsed time when leaving after some time', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          setTimeout(function () {
+            expect(token.elapsed()).to.be.above(0);
+            done();
+          }, 100);
+        });
+
       });
     });
 
@@ -378,7 +442,7 @@ describe('Async Locks', function () {
           expect(lock.isLocked()).to.be.false;
           done();
         });
-        
+
       });
 
       it('should be locked someone locked it', function (done) {
