@@ -72,7 +72,7 @@ _AsyncLockInstance_ represents an instance created by calling ````new AsyncLockF
 
 Tries to acquire the lock and when successful executes the _callback_. If the lock
 cannot be acquired waits (asynchronously) until the lock is freed. 
-The callback function signiture is _callback(token)_, it will receive the token returned by the enter function.
+The callback function signature is _callback(token)_, it will receive the token returned by the enter function.
 If _timeout_ is provided will wait only the given amount of milliseconds and then discard the call.
 If _timeout_ is not provided will wait indefinitely.
 
@@ -149,6 +149,60 @@ Returns true if the lock is currently acquired and false otherwise.
         });
       });
 ```
+
+#AsyncLockService
+
+Gives you a simple to use interface around AsyncLocks without the 
+need to create your own lock instances.
+
+### Basic Usage
+
+Use Angular.js dependency injection to get the ```AsyncLockService```
+
+```js
+    ['AsyncLockService',function(asyncLockService){
+       asyncLockService.lock('myLock',function (leaveCallback) {
+        //this code will be executed by only one caller at a time
+        //...
+        leaveCallback();
+    });
+}]
+```
+
+### AsyncLockService API
+
+The AsyncLockService provides a minimalistic API.
+The underlying data structure is the AsyncLockFactory, please refer to the helper functions
+for details on how to customize some of the behavior.
+
+#### AsyncLockService#lock(lockName,callback,[timeout])
+
+Tries to acquire the lock with the name _lockName_ and when successful executes the _callback_. If the lock
+cannot be acquired waits (asynchronously) until the lock is freed. 
+The callback function signature is _callback(leave)_, it will receive a _leave_ function that must be call to free the lock.
+If _timeout_ is provided will wait only the given amount of milliseconds and then discard the call.
+If _timeout_ is not provided will wait indefinitely.
+
+```js
+       asyncLockService.lock('foo',function (leave) {
+         //Do something critical
+        leave();
+    });
+```
+
+#### AsyncLockService#isLocked(lockName) -> boolean
+
+Returns true if the lock with the name _lockName_ is currently acquired and false otherwise.
+
+```js
+       asyncLockService.isLocked('foo'); //false
+       asyncLockService.lock('foo',function (leave) {
+           asyncLockService.isLocked('foo'); //true
+           //Do something critical
+           leave();
+       });
+```
+
 
 
 ## Unit Tests

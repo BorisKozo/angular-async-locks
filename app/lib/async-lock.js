@@ -187,7 +187,6 @@ angular.module('boriskozo.async-locks', [])
       };
 
       this.isLocked = function (name) {
-        debugger;
         if (!name || typeof name !== 'string') {
           throw new Error('The name must be a non empty string');
         }
