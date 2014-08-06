@@ -1,5 +1,5 @@
 angular.module('boriskozo.async-locks', [])
-    .factory('AsyncLockFactory', function () {
+    .factory('AsyncLockFactory', ['$timeout',function ($timeout) {
       'use strict';
 
       var tokenId = 0;
@@ -45,7 +45,7 @@ angular.module('boriskozo.async-locks', [])
        * @param {object} token - The the token which contains the callback to call.
        */
       AsyncLock.prototype.executeCallback = function (token) {
-        setTimeout(function () { //this is because < IE10 doesn't support setTimeout with parameters
+        $timeout(function () { 
           token.callback(token);
         }, 0);
       };
@@ -153,7 +153,7 @@ angular.module('boriskozo.async-locks', [])
 
       return AsyncLock;
 
-    })
+    }])
     .service('AsyncLockService', ['AsyncLockFactory',
 
     function (AsyncLock) {

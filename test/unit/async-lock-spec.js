@@ -4,10 +4,12 @@ describe('Async Locks', function () {
 
   describe('Async Locks Service', function () {
     var asyncLockService;
+    var $timeout;
 
     beforeEach(function () {
       module('boriskozo.async-locks');
-      inject(function ($injector) {
+      inject(function ($injector, _$timeout_) {
+        $timeout = _$timeout_;
         asyncLockService = $injector.get('AsyncLockService');
       });
     });
@@ -23,6 +25,7 @@ describe('Async Locks', function () {
           expect(asyncLockService.isLocked('foo')).to.be.false;
           done();
         });
+        $timeout.flush();
 
       });
 
@@ -31,6 +34,7 @@ describe('Async Locks', function () {
           expect(asyncLockService.isLocked('foo')).to.be.true;
           done();
         });
+        $timeout.flush();
       });
 
       it('should not allow non string lock name', function () {
@@ -55,6 +59,7 @@ describe('Async Locks', function () {
         asyncLockService.lock('A', function () {
           done();
         });
+        $timeout.flush();
       });
 
       it('should allow only one execution within a lock', function (done) {
@@ -65,6 +70,7 @@ describe('Async Locks', function () {
           });
           done();
         });
+        $timeout.flush();
       });
 
       it('should not allow non string lock name', function () {
@@ -96,14 +102,19 @@ describe('Async Locks', function () {
         asyncLockService.lock('A', function () {
           done();
         });
+
+        $timeout.flush();
       });
 
       it('should not call the callback if the timeout has expired and do call it if not expired', function (done) {
         asyncLockService.lock('A', function (leave) {
           setTimeout(function () {
             leave();
+            $timeout.flush();
           }, 100);
         });
+
+ 
         asyncLockService.lock('A', function () {
           done('error');
         }, 10);
@@ -112,6 +123,7 @@ describe('Async Locks', function () {
           done();
         }, 1000);
 
+        $timeout.flush();
       });
     });
 
@@ -120,10 +132,12 @@ describe('Async Locks', function () {
   describe('Async Lock', function () {
 
     var AsyncLock;
+    var $timeout;
 
     beforeEach(function () {
       module('boriskozo.async-locks');
-      inject(function ($injector) {
+      inject(function ($injector, _$timeout_) {
+        $timeout = _$timeout_;
         AsyncLock = $injector.get('AsyncLockFactory');
       });
     });
@@ -177,6 +191,7 @@ describe('Async Locks', function () {
                 if (count === 0) {
                   count++;
                   lock.leave(token);
+                  $timeout.flush();
                   return;
                 }
                 expect(balance.value).to.be.equal(80);
@@ -188,6 +203,7 @@ describe('Async Locks', function () {
 
         updateBalance();
         updateBalance();
+        $timeout.flush();
       });
     });
 
@@ -209,6 +225,7 @@ describe('Async Locks', function () {
         var token = lock.createToken(callback);
         lock.executeCallback(token);
         flag = false;
+        $timeout.flush();
       });
 
     });
@@ -221,6 +238,7 @@ describe('Async Locks', function () {
           expect(token.id).to.be.equal(innerToken.id);
           done();
         });
+        $timeout.flush();
       });
 
       it('should execute the first entrant', function (done) {
@@ -228,6 +246,7 @@ describe('Async Locks', function () {
         lock.enter(function () {
           done();
         });
+        $timeout.flush();
       });
 
       it('should allow only one execution within a lock', function (done) {
@@ -238,6 +257,7 @@ describe('Async Locks', function () {
           });
           done();
         });
+        $timeout.flush();
       });
 
       it('should not allow entering with a non function', function () {
@@ -260,6 +280,7 @@ describe('Async Locks', function () {
         lock.enter(function (innerToken) {
           setTimeout(function () {
             lock.leave(innerToken);
+            $timeout.flush();
           }, 100);
         });
         lock.enter(function () {
@@ -269,7 +290,7 @@ describe('Async Locks', function () {
         lock.enter(function () {
           done();
         }, 1000);
-
+        $timeout.flush();
       });
 
     });
@@ -305,26 +326,31 @@ describe('Async Locks', function () {
           }).to.throw('Owner token mismatch. Expected 0 but received 11');
           done();
         });
+        $timeout.flush();
       });
 
       it('should allow enter after leave was called', function (done) {
         var lock = new AsyncLock();
         lock.enter(function (token) {
           lock.leave(token);
+          $timeout.flush();
         });
         lock.enter(function () {
           done();
         });
+        $timeout.flush();
       });
 
       it('should allow enter after token.leave was called', function (done) {
         var lock = new AsyncLock();
         lock.enter(function (token) {
           token.leave();
+          $timeout.flush();
         });
         lock.enter(function () {
           done();
         });
+        $timeout.flush();
       });
 
       it('should execute the next entrant when leave was called', function (done) {
@@ -332,11 +358,13 @@ describe('Async Locks', function () {
         lock.enter(function (token) {
           setTimeout(function () {
             lock.leave(token);
+            $timeout.flush();
           }, 100);
         });
         lock.enter(function () {
           done();
         });
+        $timeout.flush();
       });
 
       it('should not execute the next entrant when leave was called if that token was canceled', function (done) {
@@ -363,6 +391,7 @@ describe('Async Locks', function () {
             done();
           }, 100);
         });
+        $timeout.flush();
 
       });
     });
@@ -398,6 +427,7 @@ describe('Async Locks', function () {
           }).to.throw('Owner token mismatch. Expected 0 but received 11');
           done();
         });
+        $timeout.flush();
       });
 
       it('should allow enter after stop was called', function (done) {
@@ -442,7 +472,7 @@ describe('Async Locks', function () {
           expect(lock.isLocked()).to.be.false;
           done();
         });
-
+        $timeout.flush();
       });
 
       it('should be locked someone locked it', function (done) {
@@ -451,6 +481,7 @@ describe('Async Locks', function () {
           expect(lock.isLocked()).to.be.true;
           done();
         });
+        $timeout.flush();
       });
     });
   });
