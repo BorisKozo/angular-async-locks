@@ -190,6 +190,23 @@ If _timeout_ is not provided will wait indefinitely.
     });
 ```
 
+#### AsyncLockService#lockPromise(lockName,callback,...args) -> promise
+
+Tries to acquire the lock with the name _lockName_ and when successful executes the _callback_. If the lock
+cannot be acquired waits (asynchronously) until the lock is freed. Expects _callback_ to return a _$q_ promise
+the lock is automatically frees when the promise returned by _callback_ is either resolved or rejected.
+The rest of the arguments are passed directly to the callback function, the _this_ in the callback function is null.
+
+```js
+       asyncLockService.lockPromise('foo',function () {
+          var deferred = $q.defer();
+          deferred.resolve('ok');
+          return deferred.promise;
+       }).then(function(message){
+             //The lock is free here
+       });
+```
+
 #### AsyncLockService#isLocked(lockName) -> boolean
 
 Returns true if the lock with the name _lockName_ is currently acquired and false otherwise.

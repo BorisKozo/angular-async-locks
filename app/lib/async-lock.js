@@ -154,9 +154,9 @@ angular.module('boriskozo.async-locks', [])
       return AsyncLock;
 
     }])
-    .service('AsyncLockService', ['AsyncLockFactory',
+    .service('AsyncLockService', ['AsyncLockFactory','$q',
 
-    function (AsyncLock) {
+    function (AsyncLock,$q) {
       'use strict';
       var locks = {};
       /**
@@ -185,6 +185,43 @@ angular.module('boriskozo.async-locks', [])
           });
         }, timeout);
       };
+
+      /**
+      * Enters a critical section with the given name but expects the callback to return a $q promise.
+      * When the promise is either resolved or rejected the lock will be unlocked.
+      * @param {string} name - The name of the lock, every call to this function with the same name will enter the same lock
+      * @param {function} callback - The callback that will be called once the lock is entered. The lock will be unlocked when the promise from this callback is either resolved or rejected
+      */
+      this.lockPromise = function (name, callback) {
+        if (!name || typeof name !== 'string') {
+          throw new Error('The name must be a non empty string');
+        }
+
+        if (!angular.isFunction(callback)) {
+          throw new Error('Callback must be a function');
+        }
+
+        if (!locks[name]) {
+          locks[name] = new AsyncLock();
+        }
+
+        var deferred = $q.defer();
+        var args = Array.prototype.slice.call(arguments, 2);
+        var lock = locks[name];
+        lock.enter(function (token) {
+          var innerPromise = callback.apply(null,args).then(function (successData) {
+            deferred.resolve(successData);
+            lock.leave(token);
+          }, function (failData) {
+            deferred.reject(failData);
+            lock.leave(token);
+          }, function (updateData) {
+            deferred.notify(updateData);
+          });
+        });
+
+        return deferred.promise;
+      }
 
       this.isLocked = function (name) {
         if (!name || typeof name !== 'string') {

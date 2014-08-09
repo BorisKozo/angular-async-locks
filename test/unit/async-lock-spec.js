@@ -5,11 +5,15 @@ describe('Async Locks', function () {
   describe('Async Locks Service', function () {
     var asyncLockService;
     var $timeout;
+    var $q;
+    var $rootScope;
 
     beforeEach(function () {
       module('boriskozo.async-locks');
-      inject(function ($injector, _$timeout_) {
+      inject(function ($injector, _$timeout_, _$q_, _$rootScope_) {
         $timeout = _$timeout_;
+        $q = _$q_;
+        $rootScope = _$rootScope_;
         asyncLockService = $injector.get('AsyncLockService');
       });
     });
@@ -114,7 +118,7 @@ describe('Async Locks', function () {
           }, 100);
         });
 
- 
+
         asyncLockService.lock('A', function () {
           done('error');
         }, 10);
@@ -127,6 +131,121 @@ describe('Async Locks', function () {
       });
     });
 
+    describe('Lock Promise', function () {
+
+      var resolvedFunc = function () {
+        var deferred = $q.defer();
+        deferred.resolve('ok');
+        return deferred.promise;
+      }
+
+      var rejectedFunc = function () {
+        var deferred = $q.defer();
+        deferred.reject('error');
+        return deferred.promise;
+      }
+
+
+      it('should execute the first entrant and resolve', function (done) {
+        asyncLockService.lockPromise('A', resolvedFunc).then(function (result) {
+          expect(result).to.be.equal('ok');
+          done();
+        });
+        $timeout.flush();
+      });
+
+      it('should execute the first entrant and reject', function (done) {
+        asyncLockService.lockPromise('A', rejectedFunc).then(function (result) {
+          done('Should not reach here');
+        }, function (result) {
+          expect(result).to.be.equal('error');
+          done();
+        });
+        $timeout.flush();
+      });
+
+
+      it('should allow only one execution within a lock', function (done) {
+
+        asyncLockService.lockPromise('A', function () {
+          var deferred = $q.defer();
+          deferred.resolve('ok');
+          asyncLockService.lockPromise('A', function () {
+            done('Should not be here');
+          });
+          return deferred.promise;
+
+        }).then(function () {
+          done();
+        });
+        $timeout.flush();
+      });
+
+      it('should allow only one execution within a lock (regular inside promise)', function (done) {
+        asyncLockService.lockPromise('A', function () {
+          var deferred = $q.defer();
+          deferred.resolve('ok');
+          asyncLockService.lock('A', function () {
+            done('Should not be here');
+          });
+          return deferred.promise;
+
+        }).then(function () {
+          done();
+        });
+        $timeout.flush();
+      });
+
+      it('should allow only one execution within a lock (promise inside regular)', function (done) {
+
+        asyncLockService.lock('A', function () {
+          asyncLockService.lockPromise('A', function () {
+            done('Should not be here');
+          });
+          done();
+        });
+        $timeout.flush();
+      });
+
+      it('should not allow non string lock name', function () {
+        var foo = function () { };
+        expect(function () {
+          asyncLockService.lockPromise({}, foo);
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lockPromise('', foo);
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lockPromise(null, foo);
+        }).to.throw('The name must be a non empty string');
+      });
+
+      it('should not allow entering with a non function', function () {
+        expect(function () {
+          asyncLockService.lockPromise('moo');
+        }).to.throw('Callback must be a function');
+      });
+
+      it('should allow lock after unlocked by first entrant', function (done) {
+        asyncLockService.lockPromise('A', resolvedFunc).then(function () {
+          asyncLockService.lockPromise('A', resolvedFunc).then(function () {
+            done();
+          });
+        });
+        $timeout.flush();
+      });
+
+      it('should pass arguments to the callback function', function (done) {
+        asyncLockService.lockPromise('A', function (a, b) {
+          expect(a).to.be.equal(1);
+          expect(b).to.be.equal('a');
+          done();
+        },1,'a');
+        $timeout.flush();
+      });
+    });
   });
 
   describe('Async Lock', function () {
@@ -179,13 +298,14 @@ describe('Async Locks', function () {
         var balance = {
           value: 100
         };
-
+        this.timeout(5000);
         var lock = new AsyncLock();
 
         function updateBalance() {
           lock.enter(function (token) {
             delay(balance.value, function (value) {
               value -= 10;
+              console.log(value)
               delay(value, function (value) {
                 balance.value = value;
                 if (count === 0) {
