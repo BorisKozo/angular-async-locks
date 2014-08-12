@@ -115,6 +115,7 @@ angular.module('boriskozo.async-locks', [])
           }
           this.ownerTokenId = queueToken.id;
           this.executeCallback(queueToken);
+          break;
         }
       };
 

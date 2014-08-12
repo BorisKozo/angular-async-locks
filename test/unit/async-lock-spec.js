@@ -305,7 +305,6 @@ describe('Async Locks', function () {
           lock.enter(function (token) {
             delay(balance.value, function (value) {
               value -= 10;
-              console.log(value)
               delay(value, function (value) {
                 balance.value = value;
                 if (count === 0) {
@@ -472,6 +471,28 @@ describe('Async Locks', function () {
         });
         $timeout.flush();
       });
+
+      it('should allow queuing of several entrants', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          token.leave();
+          $timeout.flush();
+        });
+        lock.enter(function (token) {
+          token.leave();
+          $timeout.flush();
+        });
+        lock.enter(function (token) {
+          token.leave();
+          $timeout.flush();
+        });
+        lock.enter(function () {
+          done();
+        });
+
+        $timeout.flush();
+      });
+
 
       it('should execute the next entrant when leave was called', function (done) {
         var lock = new AsyncLock();
