@@ -1,6 +1,6 @@
 {
     "name": "angular-async-locks",
-    "description": "A set of asynchronous lock pattarens for Angular.js",
+    "description": "A set of asynchronous lock patterns for Angular.js",
     "version": "0.1.2",
     "license": "MIT",
     "ignore": [],

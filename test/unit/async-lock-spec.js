@@ -242,7 +242,7 @@ describe('Async Locks', function () {
           expect(a).to.be.equal(1);
           expect(b).to.be.equal('a');
           done();
-        },1,'a');
+        }, 1, 'a');
         $timeout.flush();
       });
     });

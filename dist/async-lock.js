@@ -1,3 +1,8 @@
+// angular-async-locks v0.1.2
+// Copyright (c)2014 Boris Kozorovitzky.
+// Distributed under MIT license
+// https://github.com/BorisKozo/angular-async-locks
+
 angular.module('boriskozo.async-locks', [])
     .factory('AsyncLockFactory', ['$timeout',function ($timeout) {
       'use strict';

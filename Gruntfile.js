@@ -10,7 +10,7 @@
 // use this if you want to recursively match all subfolders:
 // 'test/spec/**/*.js'
 
-module.exports = function(grunt) {
+module.exports = function (grunt) {
 
   // Load grunt tasks automatically
   require('load-grunt-tasks')(grunt);
@@ -21,11 +21,15 @@ module.exports = function(grunt) {
   // Define the configuration for all the tasks
   grunt.initConfig({
 
-    // Project settings
-    yeoman: {
-      // configurable paths
+    meta: {
+      pkg: grunt.file.readJSON('package.json'),
       app: require('./bower.json').appPath || 'app',
-      dist: 'dist'
+      dist: 'dist',
+      version: '<%= meta.pkg.version %>',
+      banner: '// <%= meta.pkg.name %> v<%= meta.version %>\n' +
+        '// Copyright (c)<%= grunt.template.today("yyyy") %> Boris Kozorovitzky.\n' +
+        '// Distributed under MIT license\n' +
+        '// https://github.com/BorisKozo/angular-async-locks' + '\n\n'
     },
 
     // Make sure code styles are up to par and there are no obvious mistakes
@@ -36,7 +40,7 @@ module.exports = function(grunt) {
       },
       all: [
         'Gruntfile.js',
-        '<%= yeoman.app %>/{,*/}*.js'
+        '<%= meta.app %>/{,*/}*.js'
       ]
     },
 
@@ -47,33 +51,41 @@ module.exports = function(grunt) {
           dot: true,
           src: [
             '.tmp',
-            '<%= yeoman.dist %>/*',
-            '!<%= yeoman.dist %>/.git*'
+            '<%= meta.dist %>/*',
+            '!<%= meta.dist %>/.git*'
           ]
         }]
       },
       server: '.tmp'
     },
-
-    // Copies remaining files to places other tasks can use
-    copy: {
-      dist: {
-        files: [{
-          expand: true,
-          dot: true,
-          cwd: '<%= yeoman.app %>/lib',
-          dest: '<%= yeoman.dist %>',
-          src: [
-            '{,*/}*.js'
-          ]
-        }]
+    rig: {
+      compile: {
+        options: {
+          banner: '<%= meta.banner %>'
+        },
+        files: {
+          '<%= meta.dist %>/async-lock.js': ['<%= meta.app %>/lib/async-lock.js']
+        }
       }
     },
+    uglify: {
+      standard: {
+        options: {
+          banner: '<%= meta.banner %>'
+        },
+        files: {
+          '<%= meta.dist %>/async-lock.min.js': ['<%= meta.app %>/lib/async-lock.js']
+        }
+      }
+    },
+
+
   });
 
   grunt.registerTask('build', [
     'newer:jshint',
     'clean:dist',
-    'copy:dist'
+    'rig:compile',
+    'uglify:standard'
   ]);
 };
