@@ -1,5 +1,5 @@
 angular.module('boriskozo.async-locks', [])
-    .factory('AsyncLockFactory', ['$timeout',function ($timeout) {
+    .factory('AsyncLockFactory', ['$timeout', function ($timeout) {
       'use strict';
 
       var tokenId = 0;
@@ -17,11 +17,18 @@ angular.module('boriskozo.async-locks', [])
       /**
        * An asynchronous lock.
        * @constructor
+       * @param {object} options - optional set of options for this lock
        */
-      var AsyncLock = function () {
+      var AsyncLock = function (options) {
         this.queue = [];
         this.ownerTokenId = null;
+        this.options = angular.extend({}, AsyncLock.defaultOptions, options);
       };
+
+      AsyncLock.defaultOptions = {
+        maxQueueSize: Infinity,
+        overflowStrategy: 'last'
+      }
 
       /**
        * A function that is used to create a token. Override if needed.
@@ -45,7 +52,7 @@ angular.module('boriskozo.async-locks', [])
        * @param {object} token - The the token which contains the callback to call.
        */
       AsyncLock.prototype.executeCallback = function (token) {
-        $timeout(function () { 
+        $timeout(function () {
           token.callback(token);
         }, 0);
       };
@@ -152,12 +159,20 @@ angular.module('boriskozo.async-locks', [])
         return this.ownerTokenId !== null;
       };
 
+      /**
+      * Returns the number of pending callbacks
+      */
+      AsyncLock.prototype.queueSize = function () {
+        return this.queue.length;
+      };
+
+
       return AsyncLock;
 
     }])
-    .service('AsyncLockService', ['AsyncLockFactory','$q',
+    .service('AsyncLockService', ['AsyncLockFactory', '$q',
 
-    function (AsyncLock,$q) {
+    function (AsyncLock, $q) {
       'use strict';
       var locks = {};
       /**
@@ -210,7 +225,7 @@ angular.module('boriskozo.async-locks', [])
         var args = Array.prototype.slice.call(arguments, 2);
         var lock = locks[name];
         lock.enter(function (token) {
-          var innerPromise = callback.apply(null,args).then(function (successData) {
+          var innerPromise = callback.apply(null, args).then(function (successData) {
             deferred.resolve(successData);
             lock.leave(token);
           }, function (failData) {
@@ -224,12 +239,61 @@ angular.module('boriskozo.async-locks', [])
         return deferred.promise;
       };
 
-      this.isLocked = function (name) {
+      /**
+       * Returns true if a lock with the given name exists and false otherwise
+       */
+      this.lockExists = function (name) {
         if (!name || typeof name !== 'string') {
           throw new Error('The name must be a non empty string');
         }
 
-        return Boolean(locks[name] && locks[name].isLocked());
+        return Boolean(locks[name]);
+      }
+
+      /**
+       * Returns true if the lock with the given name is locked and false otherwise
+       * If the lock doesn't exist returns null
+       */
+      this.isLocked = function (name) {
+        if (this.lockExists(name)) {
+          return locks[name].isLocked();
+        }
+        return null;
       };
+
+      /**
+       * Returns the number of pending callbacks
+       * If the lock doesn't exist returns null
+       */
+      this.queueSize = function (name) {
+        if (this.lockExists(name)) {
+          return locks[name].queueSize();
+        }
+        return null;
+      }
+
+      /**
+       * Sets the options of a lock with the given name
+       * If a lock with the given name doesn't exist, creates a lock
+       */
+      this.setOptions = function (name, options) {
+        if (this.lockExists(name)) {
+          locks[name].options = angular.extend(locks[name].options, options);
+        } else {
+          locks[name] = new AsyncLock(options);
+        }
+      }
+
+      /**
+       * Returns a copy of the options of the lock with the given name
+       * If the lock doesn't exist returns null
+       */
+      this.getOptions = function (name) {
+        if (this.lockExists(name)) {
+          return angular.copy(locks[name].options);
+        }
+
+        return null;
+      }
 
     }]);
