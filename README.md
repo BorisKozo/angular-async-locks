@@ -357,6 +357,10 @@ Returns a copy of the options of the lock with the given name, if the lock doesn
 
 * Added - AsyncLockService#setOptions
 
+* Added - AsyncLockFactory#constructor options
+
+* Added - AsyncLockFactoryInstance#queueSize
+
 
 ## Unit Tests
 
