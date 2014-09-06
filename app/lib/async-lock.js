@@ -27,8 +27,8 @@ angular.module('boriskozo.async-locks', [])
 
       AsyncLock.defaultOptions = {
         maxQueueSize: Infinity,
-        overflowStrategy: 'last'
-      }
+        overflowStrategy: 'this'
+      };
 
       /**
        * A function that is used to create a token. Override if needed.
@@ -44,6 +44,44 @@ angular.module('boriskozo.async-locks', [])
           lock: this,
           leave: leave
         };
+      };
+
+      /**
+       * Removes items from the given queue based on the given options
+       * @param {array} queue - The queue of tokens
+       * @param {object} options - The options that control the reduction algorithm
+       * @returns an array of the tokens which were removed from the queue
+       */
+      AsyncLock.prototype.reduceQueue = function (queue, options) {
+        var result = [];
+        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+          return result;
+        }
+
+        if (queue.length > options.maxQueueSize) {
+          if (options.overflowStrategy === 'last') {
+            var last = queue.pop();
+            while (queue.length && queue.length > (options.maxQueueSize - 1)) {
+              result.unshift(queue.pop());
+            }
+            queue.push(last);
+            return result;
+          }
+
+          if (options.overflowStrategy === 'first') {
+            while (queue.length && queue.length > options.maxQueueSize) {
+              result.push(queue.shift());
+            }
+            return result;
+          }
+
+          if (queue.length && options.overflowStrategy === 'this') {
+            result.push(queue.pop());
+            return result;
+          }
+        }
+
+        return result;
       };
 
       /**
@@ -78,12 +116,22 @@ angular.module('boriskozo.async-locks', [])
 
         if (this.ownerTokenId !== null) {
           this.queue.push(token);
+
           if (timeout) {
             token.timeoutId = setTimeout(function () {
               token.isCanceled = true;
               token.timeoutId = null;
             }, timeout);
           }
+
+          var i, reducedTokens = this.reduceQueue(this.queue, this.options);
+          for (i = 0; i < reducedTokens.length; i++) {
+            reducedTokens[i].isCanceled = true;
+            if (reducedTokens[i].timeoutId) {
+              clearTimeout(reducedTokens[i].timeoutId);
+            }
+          }
+
         } else {
           this.ownerTokenId = token.id;
           this.executeCallback(token);
@@ -248,7 +296,7 @@ angular.module('boriskozo.async-locks', [])
         }
 
         return Boolean(locks[name]);
-      }
+      };
 
       /**
        * Returns true if the lock with the given name is locked and false otherwise
@@ -270,7 +318,7 @@ angular.module('boriskozo.async-locks', [])
           return locks[name].queueSize();
         }
         return null;
-      }
+      };
 
       /**
        * Sets the options of a lock with the given name
@@ -282,7 +330,7 @@ angular.module('boriskozo.async-locks', [])
         } else {
           locks[name] = new AsyncLock(options);
         }
-      }
+      };
 
       /**
        * Returns a copy of the options of the lock with the given name
@@ -294,6 +342,6 @@ angular.module('boriskozo.async-locks', [])
         }
 
         return null;
-      }
+      };
 
     }]);

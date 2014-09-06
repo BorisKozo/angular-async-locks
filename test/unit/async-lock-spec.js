@@ -18,9 +18,38 @@ describe('Async Locks', function () {
       });
     });
 
+    describe('Check if exists', function () {
+      it('should return true for existing lock', function () {
+        asyncLockService.lock('hello', function () { });
+        expect(asyncLockService.lockExists('hello')).to.be.true;
+      });
+
+      it('should return false for non existing lock', function () {
+        expect(asyncLockService.lockExists('hello')).to.be.false;
+      });
+
+
+      it('should not allow non string lock name', function () {
+        expect(function () {
+          asyncLockService.lockExists({});
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lockExists('');
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.lockExists();
+        }).to.throw('The name must be a non empty string');
+
+      });
+
+
+    });
+
     describe('Check is locked', function () {
       it('should check if a non existing lock is locked', function () {
-        expect(asyncLockService.isLocked('foo')).to.be.false;
+        expect(asyncLockService.isLocked('foo')).to.be.null;
       });
 
       it('should check if an existing unlocked lock is locked', function (done) {
@@ -54,6 +83,91 @@ describe('Async Locks', function () {
           asyncLockService.isLocked();
         }).to.throw('The name must be a non empty string');
 
+      });
+    });
+
+    describe('Get queue size', function () {
+      it('should get the size of non existing lock', function () {
+        expect(asyncLockService.queueSize('foo')).to.be.null;
+      });
+
+      it('should get the queue size of empty lock', function (done) {
+        asyncLockService.lock('foo', function (leave) {
+          leave();
+          expect(asyncLockService.queueSize('foo')).to.be.equal(0);
+          done();
+        });
+        $timeout.flush();
+
+      });
+
+      it('should get the queue size of non empty lock', function (done) {
+        asyncLockService.lock('foo', function (leave) {
+          leave();
+          expect(asyncLockService.queueSize('foo')).to.be.equal(0);
+        });
+
+        asyncLockService.lock('foo', function (leave) {
+          done();
+        });
+        expect(asyncLockService.queueSize('foo')).to.be.equal(1);
+        $timeout.flush();
+
+      });
+
+
+      it('should not allow non string lock name', function () {
+        expect(function () {
+          asyncLockService.isLocked({});
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.isLocked('');
+        }).to.throw('The name must be a non empty string');
+
+        expect(function () {
+          asyncLockService.isLocked();
+        }).to.throw('The name must be a non empty string');
+
+      });
+    });
+
+    describe('Get options', function () {
+      it('should not get options of non existing lock', function () {
+        expect(asyncLockService.getOptions('hello')).to.be.null;
+      });
+
+      it('should get options of existing lock', function () {
+        asyncLockService.setOptions('lol', { a: 'a' });
+        var options = asyncLockService.getOptions('lol');
+        expect(options).to.be.ok;
+        expect(options.a).to.be.equal('a');
+        expect(options.maxQueueSize).to.be.defined;
+      });
+    });
+
+    describe('Set options', function () {
+      it('should set options of non existing lock', function () {
+        asyncLockService.setOptions('lol', { a: 'a' });
+        var options = asyncLockService.getOptions('lol');
+        expect(options).to.be.ok;
+        expect(options.a).to.be.equal('a');
+        expect(options.maxQueueSize).to.be.defined;
+      });
+
+      it('should set options of existing lock', function (done) {
+        asyncLockService.lock('lol', function (leave) {
+          asyncLockService.setOptions('lol', { a: 'a' });
+          var options = asyncLockService.getOptions('lol');
+          expect(options).to.be.ok;
+          expect(options.a).to.be.equal('a');
+          expect(options.maxQueueSize).to.be.defined;
+          done();
+        });
+        var originalOptions = asyncLockService.getOptions('lol')
+        expect(originalOptions).to.be.ok;
+        expect(originalOptions.a).to.be.undefined;
+        $timeout.flush();
       });
     });
 
@@ -347,6 +461,65 @@ describe('Async Locks', function () {
         $timeout.flush();
       });
 
+      describe('Reduce Queue', function () {
+        it('should return an empty list if maxQueueSize is not a number', function () {
+          var lock = new AsyncLock();
+          var queue = [];
+          expect(lock.reduceQueue(queue, { maxQueueSize: 'a' }).length).to.be.equal(0);
+          expect(lock.reduceQueue(queue, { maxQueueSize: NaN }).length).to.be.equal(0);
+        });
+
+        it('should return an empty list if overflowStrategy is not one of first,last,this' , function () {
+          var lock = new AsyncLock();
+          var queue = ['a','b','c','d'];
+          expect(lock.reduceQueue(queue, { maxQueueSize: 1,overflowStrategy:'moo' }).length).to.be.equal(0);
+        });
+
+        it('should return an empty list if maxQueueSize is larger than actual queue size', function () {
+          var lock = new AsyncLock();
+          var queue = ['a', 'b', 'c', 'd'];
+          expect(lock.reduceQueue(queue, { maxQueueSize: 5, overflowStrategy: 'last' }).length).to.be.equal(0);
+        });
+
+        it('should reduce the last elements of the queue if overflowStrategy is last', function () {
+          var lock = new AsyncLock();
+          var queue = ['a', 'b', 'c', 'd'];
+          var reducedQueue = lock.reduceQueue(queue, { maxQueueSize: 2, overflowStrategy: 'last' });
+          expect(queue.length).to.be.equal(2);
+          expect(queue[0]).to.be.equal('a');
+          expect(queue[1]).to.be.equal('d');
+          expect(reducedQueue.length).to.be.equal(2);
+          expect(reducedQueue[0]).to.be.equal('b');
+          expect(reducedQueue[1]).to.be.equal('c');
+
+        });
+
+        it('should reduce the first elements of the queue if overflowStrategy is first', function () {
+          var lock = new AsyncLock();
+          var queue = ['a', 'b', 'c', 'd'];
+          var reducedQueue = lock.reduceQueue(queue, { maxQueueSize: 2, overflowStrategy: 'first' });
+          expect(queue.length).to.be.equal(2);
+          expect(queue[0]).to.be.equal('c');
+          expect(queue[1]).to.be.equal('d');
+          expect(reducedQueue.length).to.be.equal(2);
+          expect(reducedQueue[0]).to.be.equal('a');
+          expect(reducedQueue[1]).to.be.equal('b');
+        });
+
+        it('should reduce only the last element of the queue if overflowStrategy is this', function () {
+          var lock = new AsyncLock();
+          var queue = ['a', 'b', 'c', 'd'];
+          var reducedQueue = lock.reduceQueue(queue, { maxQueueSize: 2, overflowStrategy: 'this' });
+          expect(queue.length).to.be.equal(3);
+          expect(queue[0]).to.be.equal('a');
+          expect(queue[1]).to.be.equal('b');
+          expect(queue[2]).to.be.equal('c');
+          expect(reducedQueue.length).to.be.equal(1);
+          expect(reducedQueue[0]).to.be.equal('d');
+        });
+
+      });
+
     });
 
     describe('Enter a lock', function () {
@@ -412,6 +585,68 @@ describe('Async Locks', function () {
         $timeout.flush();
       });
 
+      describe('Enter with queue options', function () {
+        it('should not allow queuing locks if overflowStrategy is this', function (done) {
+          var lock = new AsyncLock({ maxQueueSize: 0, overflowStrategy: 'this' });
+          lock.enter(function (token) {
+            lock.enter(function () {
+              done('Should not get here');
+            });
+            expect(lock.queueSize()).to.be.equal(0);
+            token.leave();
+            done();
+          });
+          $timeout.flush();
+        });
+
+        it('should not allow queuing locks if overflowStrategy is first', function (done) {
+          var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'first' });
+          lock.enter(function (token) {
+            token.leave();
+          });
+          lock.enter(function (token) {
+            done('This should not be called');
+          });
+          lock.enter(function (token) {
+            done();
+          });
+          expect(lock.queueSize()).to.be.equal(1);
+          $timeout.flush();
+        });
+
+        it('should not allow queuing locks if overflowStrategy is last', function (done) {
+          var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'last' });
+          lock.enter(function (token) {
+            token.leave();
+          });
+          lock.enter(function (token) {
+            done('This should not be called');
+          });
+          lock.enter(function (token) {
+            done();
+          });
+
+          expect(lock.queueSize()).to.be.equal(1);
+          $timeout.flush();
+        });
+
+        it('should not allow queuing locks if overflowStrategy is this', function (done) {
+          var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'this' });
+          lock.enter(function (token) {
+            token.leave();
+          });
+          lock.enter(function (token) {
+            done();
+          });
+          lock.enter(function (token) {
+            done('This should not be called');
+          });
+
+          expect(lock.queueSize()).to.be.equal(1);
+          $timeout.flush();
+        });
+
+      });
     });
 
     describe('Leave a lock', function () {
@@ -623,6 +858,60 @@ describe('Async Locks', function () {
           done();
         });
         $timeout.flush();
+      });
+    });
+
+    describe('Get queue size', function () {
+      it('should get a queue size of 0 if the lock is unlocked', function () {
+        var lock = new AsyncLock();
+        expect(lock.queueSize()).to.be.equal(0);
+      });
+
+      it('should get a queue size of 0 inside the callback', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          expect(lock.queueSize()).to.be.equal(0);
+          done();
+        })
+        $timeout.flush();
+      });
+
+      it('should get a queue size of 2 when two callbacks are pending', function (done) {
+        var lock = new AsyncLock();
+        lock.enter(function (token) {
+          expect(lock.queueSize()).to.be.equal(2);
+          done();
+        })
+        lock.enter(function () { });
+        lock.enter(function () { });
+        $timeout.flush();
+      });
+
+
+    });
+
+    describe('Create with options', function () {
+      it('should have options if they were specified', function () {
+        var lock = new AsyncLock({
+          maxQueueSize: 5,
+          overflowStrategy: 'aa'
+        });
+        expect(lock.options.maxQueueSize).to.be.equal(5);
+        expect(lock.options.overflowStrategy).to.be.equal('aa');
+      });
+
+      it('should have partial options if they were specified', function () {
+        var lock = new AsyncLock({
+          maxQueueSize: 5,
+        });
+        expect(lock.options.maxQueueSize).to.be.equal(5);
+        expect(lock.options.overflowStrategy).to.be.equal(AsyncLock.defaultOptions.overflowStrategy);
+      });
+
+      it('should have default options if they were not specified', function () {
+        var lock = new AsyncLock();
+        expect(lock.options.maxQueueSize).to.be.equal(Infinity);
+        expect(lock.options.overflowStrategy).to.be.equal(AsyncLock.defaultOptions.overflowStrategy);
       });
     });
   });

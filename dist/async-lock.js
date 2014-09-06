@@ -1,10 +1,10 @@
-// angular-async-locks v0.1.2
+// angular-async-locks v0.2.0
 // Copyright (c)2014 Boris Kozorovitzky.
 // Distributed under MIT license
 // https://github.com/BorisKozo/angular-async-locks
 
 angular.module('boriskozo.async-locks', [])
-    .factory('AsyncLockFactory', ['$timeout',function ($timeout) {
+    .factory('AsyncLockFactory', ['$timeout', function ($timeout) {
       'use strict';
 
       var tokenId = 0;
@@ -22,10 +22,17 @@ angular.module('boriskozo.async-locks', [])
       /**
        * An asynchronous lock.
        * @constructor
+       * @param {object} options - optional set of options for this lock
        */
-      var AsyncLock = function () {
+      var AsyncLock = function (options) {
         this.queue = [];
         this.ownerTokenId = null;
+        this.options = angular.extend({}, AsyncLock.defaultOptions, options);
+      };
+
+      AsyncLock.defaultOptions = {
+        maxQueueSize: Infinity,
+        overflowStrategy: 'this'
       };
 
       /**
@@ -45,12 +52,50 @@ angular.module('boriskozo.async-locks', [])
       };
 
       /**
+       * Removes items from the given queue based on the given options
+       * @param {array} queue - The queue of tokens
+       * @param {object} options - The options that control the reduction algorithm
+       * @returns an array of the tokens which were removed from the queue
+       */
+      AsyncLock.prototype.reduceQueue = function (queue, options) {
+        var result = [];
+        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+          return result;
+        }
+
+        if (queue.length > options.maxQueueSize) {
+          if (options.overflowStrategy === 'last') {
+            var last = queue.pop();
+            while (queue.length && queue.length > (options.maxQueueSize - 1)) {
+              result.unshift(queue.pop());
+            }
+            queue.push(last);
+            return result;
+          }
+
+          if (options.overflowStrategy === 'first') {
+            while (queue.length && queue.length > options.maxQueueSize) {
+              result.push(queue.shift());
+            }
+            return result;
+          }
+
+          if (queue.length && options.overflowStrategy === 'this') {
+            result.push(queue.pop());
+            return result;
+          }
+        }
+
+        return result;
+      };
+
+      /**
        * A function that is used to execute the user callback. Default implementation invokes the callback asynchronously.
        * Override if needed.
        * @param {object} token - The the token which contains the callback to call.
        */
       AsyncLock.prototype.executeCallback = function (token) {
-        $timeout(function () { 
+        $timeout(function () {
           token.callback(token);
         }, 0);
       };
@@ -76,12 +121,22 @@ angular.module('boriskozo.async-locks', [])
 
         if (this.ownerTokenId !== null) {
           this.queue.push(token);
+
           if (timeout) {
             token.timeoutId = setTimeout(function () {
               token.isCanceled = true;
               token.timeoutId = null;
             }, timeout);
           }
+
+          var i, reducedTokens = this.reduceQueue(this.queue, this.options);
+          for (i = 0; i < reducedTokens.length; i++) {
+            reducedTokens[i].isCanceled = true;
+            if (reducedTokens[i].timeoutId) {
+              clearTimeout(reducedTokens[i].timeoutId);
+            }
+          }
+
         } else {
           this.ownerTokenId = token.id;
           this.executeCallback(token);
@@ -157,12 +212,20 @@ angular.module('boriskozo.async-locks', [])
         return this.ownerTokenId !== null;
       };
 
+      /**
+      * Returns the number of pending callbacks
+      */
+      AsyncLock.prototype.queueSize = function () {
+        return this.queue.length;
+      };
+
+
       return AsyncLock;
 
     }])
-    .service('AsyncLockService', ['AsyncLockFactory','$q',
+    .service('AsyncLockService', ['AsyncLockFactory', '$q',
 
-    function (AsyncLock,$q) {
+    function (AsyncLock, $q) {
       'use strict';
       var locks = {};
       /**
@@ -215,7 +278,7 @@ angular.module('boriskozo.async-locks', [])
         var args = Array.prototype.slice.call(arguments, 2);
         var lock = locks[name];
         lock.enter(function (token) {
-          var innerPromise = callback.apply(null,args).then(function (successData) {
+          var innerPromise = callback.apply(null, args).then(function (successData) {
             deferred.resolve(successData);
             lock.leave(token);
           }, function (failData) {
@@ -229,12 +292,61 @@ angular.module('boriskozo.async-locks', [])
         return deferred.promise;
       };
 
-      this.isLocked = function (name) {
+      /**
+       * Returns true if a lock with the given name exists and false otherwise
+       */
+      this.lockExists = function (name) {
         if (!name || typeof name !== 'string') {
           throw new Error('The name must be a non empty string');
         }
 
-        return Boolean(locks[name] && locks[name].isLocked());
+        return Boolean(locks[name]);
+      };
+
+      /**
+       * Returns true if the lock with the given name is locked and false otherwise
+       * If the lock doesn't exist returns null
+       */
+      this.isLocked = function (name) {
+        if (this.lockExists(name)) {
+          return locks[name].isLocked();
+        }
+        return null;
+      };
+
+      /**
+       * Returns the number of pending callbacks
+       * If the lock doesn't exist returns null
+       */
+      this.queueSize = function (name) {
+        if (this.lockExists(name)) {
+          return locks[name].queueSize();
+        }
+        return null;
+      };
+
+      /**
+       * Sets the options of a lock with the given name
+       * If a lock with the given name doesn't exist, creates a lock
+       */
+      this.setOptions = function (name, options) {
+        if (this.lockExists(name)) {
+          locks[name].options = angular.extend(locks[name].options, options);
+        } else {
+          locks[name] = new AsyncLock(options);
+        }
+      };
+
+      /**
+       * Returns a copy of the options of the lock with the given name
+       * If the lock doesn't exist returns null
+       */
+      this.getOptions = function (name) {
+        if (this.lockExists(name)) {
+          return angular.copy(locks[name].options);
+        }
+
+        return null;
       };
 
     }]);
