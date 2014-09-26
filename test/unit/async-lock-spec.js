@@ -469,10 +469,10 @@ describe('Async Locks', function () {
           expect(lock.reduceQueue(queue, { maxQueueSize: NaN }).length).to.be.equal(0);
         });
 
-        it('should return an empty list if overflowStrategy is not one of first,last,this' , function () {
+        it('should return an empty list if overflowStrategy is not one of first,last,this', function () {
           var lock = new AsyncLock();
-          var queue = ['a','b','c','d'];
-          expect(lock.reduceQueue(queue, { maxQueueSize: 1,overflowStrategy:'moo' }).length).to.be.equal(0);
+          var queue = ['a', 'b', 'c', 'd'];
+          expect(lock.reduceQueue(queue, { maxQueueSize: 1, overflowStrategy: 'moo' }).length).to.be.equal(0);
         });
 
         it('should return an empty list if maxQueueSize is larger than actual queue size', function () {
@@ -874,7 +874,7 @@ describe('Async Locks', function () {
     });
   });
 
-  describe.only('Reset Event', function () {
+  describe('Reset Event', function () {
 
     var ResetEvent;
 
@@ -975,9 +975,9 @@ describe('Async Locks', function () {
 
       it('should create the reset event with appropriate options', function () {
         var resetEvent = new ResetEvent(true);
-        expect(resetEvent.options.maxQueueSize).to.be.equal(Infinity);
-        expect(resetEvent.options.overflowStrategy).to.be.equal('this');
-        expect(resetEvent.options.autoResetCount).to.be.equal(Infinity);
+        expect(resetEvent.options.maxQueueSize).to.be.equal(ResetEvent.defaultOptions.maxQueueSize);
+        expect(resetEvent.options.overflowStrategy).to.be.equal(ResetEvent.defaultOptions.overflowStrategy);
+        expect(resetEvent.options.autoResetCount).to.be.equal(ResetEvent.defaultOptions.autoResetCount);
 
         var resetEvent = new ResetEvent(true, { maxQueueSize: 10, overflowStrategy: 'monkey', autoResetCount: 15 });
         expect(resetEvent.options.maxQueueSize).to.be.equal(10);
@@ -985,8 +985,8 @@ describe('Async Locks', function () {
         expect(resetEvent.options.autoResetCount).to.be.equal(15);
 
         var resetEvent = new ResetEvent(true, { autoResetCount: 15 });
-        expect(resetEvent.options.maxQueueSize).to.be.equal(Infinity);
-        expect(resetEvent.options.overflowStrategy).to.be.equal('this');
+        expect(resetEvent.options.maxQueueSize).to.be.equal(ResetEvent.defaultOptions.maxQueueSize);
+        expect(resetEvent.options.overflowStrategy).to.be.equal(ResetEvent.defaultOptions.overflowStrategy);
         expect(resetEvent.options.autoResetCount).to.be.equal(15);
 
       });
@@ -1060,7 +1060,7 @@ describe('Async Locks', function () {
 
         resetEvent.wait(function () {
           count++;
-        },10);
+        }, 10);
 
         resetEvent.wait(function () {
           count++;
@@ -1076,292 +1076,129 @@ describe('Async Locks', function () {
 
     });
 
-  //    describe('Enter with queue options', function () {
-  //      it('should not allow queuing locks if overflowStrategy is this', function (done) {
-  //        var lock = new AsyncLock({ maxQueueSize: 0, overflowStrategy: 'this' });
-  //        lock.enter(function (token) {
-  //          lock.enter(function () {
-  //            done('Should not get here');
-  //          });
-  //          expect(lock.queueSize()).to.be.equal(0);
-  //          token.leave();
-  //          done();
-  //        });
-  //        $timeout.flush();
-  //      });
+    describe('Wait', function () {
+      it('should throw if callback is not a function', function () {
+        var resetEvent = new ResetEvent();
+        expect(function () {
+          resetEvent.wait();
+        }).to.throw('Callback must be a function');
 
-  //      it('should not allow queuing locks if overflowStrategy is first', function (done) {
-  //        var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'first' });
-  //        lock.enter(function (token) {
-  //          token.leave();
-  //        });
-  //        lock.enter(function (token) {
-  //          done('This should not be called');
-  //        });
-  //        lock.enter(function (token) {
-  //          done();
-  //        });
-  //        expect(lock.queueSize()).to.be.equal(1);
-  //        $timeout.flush();
-  //      });
+        expect(function () {
+          resetEvent.wait(10);
+        }).to.throw('Callback must be a function');
 
-  //      it('should not allow queuing locks if overflowStrategy is last', function (done) {
-  //        var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'last' });
-  //        lock.enter(function (token) {
-  //          token.leave();
-  //        });
-  //        lock.enter(function (token) {
-  //          done('This should not be called');
-  //        });
-  //        lock.enter(function (token) {
-  //          done();
-  //        });
-
-  //        expect(lock.queueSize()).to.be.equal(1);
-  //        $timeout.flush();
-  //      });
-
-  //      it('should not allow queuing locks if overflowStrategy is this', function (done) {
-  //        var lock = new AsyncLock({ maxQueueSize: 1, overflowStrategy: 'this' });
-  //        lock.enter(function (token) {
-  //          token.leave();
-  //        });
-  //        lock.enter(function (token) {
-  //          done();
-  //        });
-  //        lock.enter(function (token) {
-  //          done('This should not be called');
-  //        });
-
-  //        expect(lock.queueSize()).to.be.equal(1);
-  //        $timeout.flush();
-  //      });
-
-  //    });
-  //  });
-
-  //  describe('Leave a lock', function () {
-
-  //    it('should throw if token is null or undefined', function () {
-  //      var lock = new AsyncLock();
-  //      expect(function () {
-  //        lock.leave(null);
-  //      }).to.throw('Token cannot be null or undefined');
-
-  //      expect(function () {
-  //        lock.leave(undefined);
-  //      }).to.throw('Token cannot be null or undefined');
-
-  //    });
-
-  //    it('should throw if leave was called when there was no pending token', function () {
-  //      var lock = new AsyncLock();
-  //      expect(function () {
-  //        lock.leave('');
-  //      }).to.throw('There is no pending token in the lock but received ""');
-
-  //    });
-
-  //    it('should throw if leave was called with incorrect token', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        token.id = 11;
-  //        expect(function () {
-  //          lock.leave(token);
-  //        }).to.throw('Owner token mismatch. Expected 0 but received 11');
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
-
-  //    it('should allow enter after leave was called', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        lock.leave(token);
-  //        $timeout.flush();
-  //      });
-  //      lock.enter(function () {
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
-
-  //    it('should allow enter after token.leave was called', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        token.leave();
-  //        $timeout.flush();
-  //      });
-  //      lock.enter(function () {
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
-
-  //    it('should allow queuing of several entrants', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        token.leave();
-  //        $timeout.flush();
-  //      });
-  //      lock.enter(function (token) {
-  //        token.leave();
-  //        $timeout.flush();
-  //      });
-  //      lock.enter(function (token) {
-  //        token.leave();
-  //        $timeout.flush();
-  //      });
-  //      lock.enter(function () {
-  //        done();
-  //      });
-
-  //      $timeout.flush();
-  //    });
+      });
 
 
-  //    it('should execute the next entrant when leave was called', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        setTimeout(function () {
-  //          lock.leave(token);
-  //          $timeout.flush();
-  //        }, 100);
-  //      });
-  //      lock.enter(function () {
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
+      it('should throw if create token returns undefined', function () {
+        var resetEvent = new ResetEvent();
+        resetEvent.createToken = function () { };
+        expect(function () {
+          resetEvent.wait(function () { });
+        }).to.throw('Token cannot be null or undefined');
+      });
 
-  //    it('should not execute the next entrant when leave was called if that token was canceled', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        setTimeout(function () {
-  //          lock.leave(token);
-  //        }, 100);
-  //      });
-  //      var token = lock.enter(function () {
-  //        done('Should not be here');
-  //      });
+      it('should return a token with timeoutId if timeout was provided', function () {
+        var resetEvent = new ResetEvent();
+        var token = resetEvent.wait(function () { }, 100);
+        expect(token).to.be.ok;
+        expect(token.timeoutId).to.be.ok;
+      });
 
-  //      token.isCanceled = true;
+      it('should execute immediately if the event is signaled', function (done) {
+        var resetEvent = new ResetEvent(true);
+        resetEvent.wait(function () {
+          done();
+        });
+      });
 
-  //      setTimeout(done, 300);
-  //    });
+      it('should not execute immediately if the event is not signaled', function (done) {
+        var resetEvent = new ResetEvent(false);
+        resetEvent.wait(function () {
+          done('should not get here');
+        });
 
-  //    it('should have positive elapsed time when leaving after some time', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        setTimeout(function () {
-  //          expect(token.elapsed()).to.be.above(0);
-  //          done();
-  //        }, 100);
-  //      });
-  //      $timeout.flush();
+        expect(resetEvent.queueSize()).to.be.equal(1);
+        done();
+      });
 
-  //    });
+      describe('Wait with queue options', function () {
+        it('should not allow queuing if overflowStrategy is this', function (done) {
+          var resetEvent = new ResetEvent(false, { maxQueueSize: 1, overflowStrategy: 'this' });
 
-  //    it('should not execute the next entrants when leave was called and abort pending is true', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        setTimeout(function () {
-  //          lock.leave(token, true);
-  //          expect(lock.queueSize()).to.be.equal(0);
-  //          expect(tempToken.isCanceled).to.be.true;
-  //        }, 100);
-  //      });
+          resetEvent.wait(function () {
+            done();
+          });
 
-  //      var tempToken = lock.enter(function () {
-  //        done('Should not be here');
-  //      });
+          resetEvent.wait(function () {
+            done('Should not be here');
+          });
 
-  //      lock.enter(function () {
-  //        done('Should not be here 2');
-  //      });
+          expect(resetEvent.queueSize()).to.be.equal(1);
+          resetEvent.set();
+        });
 
-  //      setTimeout(done, 300);
-  //    });
-  //  });
+        it('should not allow queuing if overflowStrategy is first', function (done) {
+          var resetEvent = new ResetEvent(false, { maxQueueSize: 1, overflowStrategy: 'first' });
 
-  //  describe('Check is locked', function () {
-  //    it('should be unlocked if no one entered the lock', function () {
-  //      var lock = new AsyncLock();
-  //      expect(lock.isLocked()).to.be.false;
-  //    });
+          resetEvent.wait(function () {
+            done('Should not be here');
+          });
 
-  //    it('should be unlocked if everyone left the lock', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        lock.leave(token);
-  //        expect(lock.isLocked()).to.be.false;
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
+          resetEvent.wait(function () {
+            done();
+          });
 
-  //    it('should be locked someone locked it', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function () {
-  //        expect(lock.isLocked()).to.be.true;
-  //        done();
-  //      });
-  //      $timeout.flush();
-  //    });
-  //  });
+          expect(resetEvent.queueSize()).to.be.equal(1);
+          resetEvent.set();
+        });
 
-  //  describe('Get queue size', function () {
-  //    it('should get a queue size of 0 if the lock is unlocked', function () {
-  //      var lock = new AsyncLock();
-  //      expect(lock.queueSize()).to.be.equal(0);
-  //    });
+        it('should not allow queuing if overflowStrategy is last', function (done) {
+          var resetEvent = new ResetEvent(false, { maxQueueSize: 2, overflowStrategy: 'last' });
 
-  //    it('should get a queue size of 0 inside the callback', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        expect(lock.queueSize()).to.be.equal(0);
-  //        done();
-  //      })
-  //      $timeout.flush();
-  //    });
+          resetEvent.wait(function () {
+          });
 
-  //    it('should get a queue size of 2 when two callbacks are pending', function (done) {
-  //      var lock = new AsyncLock();
-  //      lock.enter(function (token) {
-  //        expect(lock.queueSize()).to.be.equal(2);
-  //        done();
-  //      })
-  //      lock.enter(function () { });
-  //      lock.enter(function () { });
-  //      $timeout.flush();
-  //    });
+          resetEvent.wait(function () {
+            done('Should not be here');
+          });
+
+          resetEvent.wait(function () {
+            done();
+          });
 
 
-  //  });
+          expect(resetEvent.queueSize()).to.be.equal(2);
+          resetEvent.set();
+        });
 
-  //  describe('Create with options', function () {
-  //    it('should have options if they were specified', function () {
-  //      var lock = new AsyncLock({
-  //        maxQueueSize: 5,
-  //        overflowStrategy: 'aa'
-  //      });
-  //      expect(lock.options.maxQueueSize).to.be.equal(5);
-  //      expect(lock.options.overflowStrategy).to.be.equal('aa');
-  //    });
+      });
+    });
 
-  //    it('should have partial options if they were specified', function () {
-  //      var lock = new AsyncLock({
-  //        maxQueueSize: 5,
-  //      });
-  //      expect(lock.options.maxQueueSize).to.be.equal(5);
-  //      expect(lock.options.overflowStrategy).to.be.equal(AsyncLock.defaultOptions.overflowStrategy);
-  //    });
+    describe('Queue size', function () {
+      it('should get queue size of an empty event', function () {
+        var resetEvent = new ResetEvent();
+        expect(resetEvent.queueSize()).to.be.equal(0);
+      });
 
-  //    it('should have default options if they were not specified', function () {
-  //      var lock = new AsyncLock();
-  //      expect(lock.options.maxQueueSize).to.be.equal(Infinity);
-  //      expect(lock.options.overflowStrategy).to.be.equal(AsyncLock.defaultOptions.overflowStrategy);
-  //    });
-  //  });
+      it('should get queue size of a waited event', function () {
+        var resetEvent = new ResetEvent();
+        resetEvent.wait(function () { });
+        resetEvent.wait(function () { });
+        expect(resetEvent.queueSize()).to.be.equal(2);
+      });
+
+    });
+
+    describe('Signaled state', function () {
+      it('should create the reset event with appropriate signaled state', function () {
+        var resetEvent = new ResetEvent(true);
+        expect(resetEvent.isSignaled).to.be.true;
+        resetEvent = new ResetEvent(false);
+        expect(resetEvent.isSignaled).to.be.false;
+        resetEvent = new ResetEvent();
+        expect(resetEvent.isSignaled).to.be.false;
+      });
+    });
   });
 });
