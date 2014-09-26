@@ -130,11 +130,13 @@ If _timeout_ is not provided will wait indefinitely.
       });
 ```
 
-#### AsyncLockInstance#leave(token)
+#### AsyncLockInstance#leave(token,abortPending)
 
 Leaves the lock and allows the execution of the next called to _enter_.
 The _token_ must be the token that acquired the lock otherwise an exception will be thrown.
 The callback of the next caller to _enter_ will be triggered based on the _executeCallback_ function (default is asynchronous).
+If _abortPending_ is (boolean) true then all the pending callbacks are canceled and will not be called. For each canceled callback
+token.isCanceled is set to true.
 
 ```js
  var lock = new AsyncLockFactory();
@@ -152,30 +154,6 @@ The callback of the next caller to _enter_ will be triggered based on the _execu
  });
     
 //Prints: First Second
-```
-
-#### AsyncLockInstance#stop(token)
-
-Aborts the execution of all the pending callbacks on this lock.
-The _token_ must be the token that acquired the lock otherwise an exception will be thrown.
-
-```js
- var lock = new AsyncLockFactory();
- lock.enter(function (innerToken) {
-        setTimeout(function(){
-            console.log('First');
-            lock.stop(innerToken);
-        },2000);
-    });
- });
-
- lock.enter(function (innerToken) {
-     console.log('Second');
-     lock.leave(innerToken);
- });
-    
-    //Prints: First
-    //Second callback was aborted by stop
 ```
 
 #### AsyncLockInstance#isLocked() -> boolean
@@ -342,6 +320,10 @@ Returns a copy of the options of the lock with the given name, if the lock doesn
 
 
 ## Change Log
+
+### 0.2.0 -> 0.3.0
+
+* **Breaking** - AsyncLockInstance#stop removed, use AsyncLockInstance#leave with _abortPending = true_
 
 ### 0.1.2 -> 0.2.0
 
