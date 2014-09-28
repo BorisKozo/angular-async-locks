@@ -243,7 +243,6 @@ angular.module('boriskozo.async-locks', [])
           elapsed: elapsed,
           start: new Date(),
           resetEvent: this,
-          set: set
         };
       };
 
@@ -384,7 +383,7 @@ angular.module('boriskozo.async-locks', [])
         }
 
         return token;
-      }
+      };
 
       /**
        * Checks if this reset event is signaled. A signaled reset event executes all callbacks immediately.
