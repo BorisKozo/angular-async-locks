@@ -317,16 +317,24 @@ angular.module('boriskozo.async-locks', [])
           throw new Error('The reset event is already in a signaled state');
         }
 
+        this.callbacksCount = this.options.autoResetCount;
+
         while (this.queue.length > 0) {
           queueToken = this.queue.shift();
-          if (queueToken.timeoutId) {
+          this.callbacksCount--;
+
+          if (queueToken.timeoutId && this.callbacksCount > 0) {
             clearTimeout(queueToken.timeoutId);
           }
 
           if (queueToken.isCanceled) {
-            continue;
+            this.callbacksCount++;
+          } else {
+            this.executeCallback(queueToken);
+            if (this.callbacksCount === 0) {
+              return;
+            }
           }
-          this.executeCallback(queueToken);
         }
         this.isSignaled = true;
       };
@@ -359,6 +367,10 @@ angular.module('boriskozo.async-locks', [])
 
         if (this.isSignaled) {
           this.executeCallback(token);
+          this.callbacksCount--;
+          if (this.callbacksCount === 0) {
+            this.isSignaled = false;
+          }
         } else {
           this.queue.push(token);
         }

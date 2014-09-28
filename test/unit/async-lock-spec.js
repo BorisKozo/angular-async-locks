@@ -1200,5 +1200,74 @@ describe('Async Locks', function () {
         expect(resetEvent.isSignaled).to.be.false;
       });
     });
+
+    describe('Auto reset', function () {
+      it('Should auto reset after the specified number of calls', function (done) {
+        var resetEvent = new ResetEvent(false, { autoResetCount: 1 });
+        resetEvent.wait(function () {
+
+        });
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        resetEvent.set();
+        done();
+      })
+
+      it('Should auto reset after the specified number of calls with canceled', function (done) {
+        var resetEvent = new ResetEvent(false, { autoResetCount: 1 });
+        resetEvent.wait(function () {
+        }).isCanceled = true;
+
+        resetEvent.wait(function () {
+          done();
+        });
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        resetEvent.set();
+      });
+
+      it('Should auto reset after the specified number of calls with timeout', function (done) {
+        var resetEvent = new ResetEvent(false, { autoResetCount: 1 });
+        resetEvent.wait(function () {
+          done();
+        }, 100);
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        resetEvent.set();
+      });
+
+      it('Should auto reset after the specified number of calls on wait', function (done) {
+        var resetEvent = new ResetEvent(false, { autoResetCount: 1 });
+        resetEvent.wait(function () {
+        });
+
+        resetEvent.set();
+
+        resetEvent.wait(function () {
+          done('This should not be called');
+        });
+
+        done();
+
+      });
+
+    });
   });
 });
