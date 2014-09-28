@@ -481,7 +481,7 @@ and then mark the event as non-signaled.
  });
 ```
 
-#### ResetEventInstance#wait(callback,[timeout])->token
+#### ResetEventInstance#wait(callback,[timeout]) -> token
   
 Waits until the reset event becomes signaled then executes the callback function. 
 If the reset event is already signaled when wait is called, the callback is executed immediately.
