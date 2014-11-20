@@ -54,7 +54,7 @@ angular.module('boriskozo.async-locks', [])
        */
       AsyncLock.prototype.reduceQueue = function (queue, options) {
         var result = [];
-        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+        if ((typeof options.maxQueueSize !== 'number') || isNaN(options.maxQueueSize)) {
           return result;
         }
 
@@ -254,7 +254,7 @@ angular.module('boriskozo.async-locks', [])
        */
       ResetEvent.prototype.reduceQueue = function (queue, options) {
         var result = [];
-        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+        if ((typeof options.maxQueueSize !== 'number') || isNaN(options.maxQueueSize)) {
           return result;
         }
 
