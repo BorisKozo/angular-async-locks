@@ -545,6 +545,9 @@ Note than inside a callback that callback is no longer pending.
 ```    
 
 ## Change Log
+### 0.3.0 -> 0.3.1
+
+* Removed the use of Number.isNaN from the code to support ES5 (thanks @bwittwer)
 
 ### 0.2.0 -> 0.3.0
 

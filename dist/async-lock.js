@@ -1,4 +1,4 @@
-// angular-async-locks v0.3.0
+// angular-async-locks v0.3.1
 // Copyright (c)2014 Boris Kozorovitzky.
 // Distributed under MIT license
 // https://github.com/BorisKozo/angular-async-locks
@@ -59,7 +59,7 @@ angular.module('boriskozo.async-locks', [])
        */
       AsyncLock.prototype.reduceQueue = function (queue, options) {
         var result = [];
-        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+        if ((typeof options.maxQueueSize !== 'number') || isNaN(options.maxQueueSize)) {
           return result;
         }
 
@@ -259,7 +259,7 @@ angular.module('boriskozo.async-locks', [])
        */
       ResetEvent.prototype.reduceQueue = function (queue, options) {
         var result = [];
-        if ((typeof options.maxQueueSize !== 'number') || Number.isNaN(options.maxQueueSize)) {
+        if ((typeof options.maxQueueSize !== 'number') || isNaN(options.maxQueueSize)) {
           return result;
         }
 
